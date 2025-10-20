@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Penjadwalan Kelas</title>
+    <!-- Menggunakan Tailwind CSS untuk tampilan yang modern dan responsif -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .font-logo {
+            font-family: 'Exo 2', sans-serif;
+        }
+        /* Style tambahan untuk mode cetak */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #area-cetak, #area-cetak * {
+                visibility: visible;
+            }
+            #area-cetak {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+            .no-print {
+                display: none;
+            }
+        }
+        
+        /* Animasi untuk aliran data di background */
+        @keyframes stream {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100vh); }
+        }
+        .data-stream {
+            position: absolute;
+            width: 1px;
+            height: 50%;
+            background: linear-gradient(to bottom, transparent, rgba(14, 165, 233, 0.5), transparent);
+            animation: stream 15s linear infinite;
+        }
+        .dark .data-stream {
+            background: linear-gradient(to bottom, transparent, rgba(56, 189, 248, 0.4), transparent);
+        }
+    </style>
+    <script>
+        // Logika untuk tema terang/gelap
+        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark')
+        } else {
+          document.documentElement.classList.remove('dark')
+        }
+    </script>
+</head>
+<body class="bg-gradient-to-br from-white to-blue-300 text-gray-800 dark:from-slate-900 dark:to-blue-900 dark:text-gray-200 transition-colors duration-300">
+
+    <!-- Elemen Latar Belakang Dekoratif -->
+    <div class="fixed top-0 left-0 w-full h-full -z-10 overflow-hidden">
+        <!-- Latar belakang pola sirkuit SVG -->
+        <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" class="absolute top-0 left-0">
+            <defs>
+                <pattern id="circuit" patternUnits="userSpaceOnUse" width="100" height="100" class="text-sky-200 dark:text-sky-900/50">
+                    <path d="M 50 0 L 50 50 L 0 50 M 50 50 L 100 50 M 50 50 L 50 100" fill="none" stroke="currentColor" stroke-width="0.5"/>
+                    <circle cx="50" cy="50" r="2" fill="currentColor" />
+                    <circle cx="0" cy="0" r="1.5" fill="currentColor" />
+                </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#circuit)" opacity="0.4" />
+        </svg>
+
+        <!-- Elemen Aliran Data (Baru) -->
+        <div class="data-stream" style="left: 10%; animation-delay: -5s;"></div>
+        <div class="data-stream" style="left: 25%; animation-delay: -2s; animation-duration: 12s;"></div>
+        <div class="data-stream" style="left: 45%; animation-delay: -10s; animation-duration: 18s;"></div>
+        <div class="data-stream" style="left: 65%; animation-delay: -1s;"></div>
+        <div class="data-stream" style="left: 80%; animation-delay: -8s; animation-duration: 13s;"></div>
+        <div class="data-stream" style="left: 95%; animation-delay: -4s;"></div>
+
+        <!-- Bentuk blur yang bergerak -->
+        <div class="absolute -top-20 -left-20 w-80 h-80 bg-sky-300/40 dark:bg-sky-700/40 rounded-full filter blur-3xl opacity-60 animate-pulse"></div>
+        <div class="absolute -bottom-20 -right-20 w-96 h-96 bg-violet-300/40 dark:bg-violet-700/40 rounded-full filter blur-3xl opacity-60 animate-pulse" style="animation-delay: 2s;"></div>
+    </div>
+
+
+    <!-- Layar Login (Simulasi) -->
+    <div id="login-screen" class="min-h-screen flex items-center justify-center p-4">
+        <div class="max-w-md w-full bg-white/70 dark:bg-gray-800/70 backdrop-blur-lg p-8 rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50">
+            <!-- Logo dan Nama Sekolah -->
+            <div class="flex flex-col items-center mb-6">
+                <svg class="w-20 h-20 text-sky-500 dark:text-sky-400 mb-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9 9 0 100-18 9 9 0 000 18z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 15.5V12M15.5 12.5L12 12M12 12L8.5 9.5M16.5 16.5L18 18M6 18l1.5-1.5M18 6l-1.5 1.5" />
+                    <circle cx="12" cy="8" r="1" fill="currentColor"/>
+                    <circle cx="16" cy="14" r="1" fill="currentColor"/>
+                    <circle cx="8" cy="14" r="1" fill="currentColor"/>
+                </svg>
+                <h1 class="font-logo text-4xl font-bold text-gray-800 dark:text-white tracking-widest uppercase">SMA Cyberaya</h1>
+            </div>
+            
+            <!-- Tahap 1: Pilihan Peran -->
+            <div id="role-selection-view">
+                <h2 class="text-2xl font-bold text-center text-gray-900 dark:text-white" data-lang="loginTitle">Masuk Sebagai</h2>
+                <div class="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <!-- Kartu Admin -->
+                    <div data-role="admin" class="role-card text-center p-4 border dark:border-gray-600 rounded-lg cursor-pointer hover:bg-sky-100 dark:hover:bg-sky-800/50 transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 mx-auto text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        <h3 class="font-semibold mt-2" data-lang="roleAdmin">Admin</h3>
+                    </div>
+                    <!-- Kartu Guru -->
+                    <div data-role="guru" class="role-card text-center p-4 border dark:border-gray-600 rounded-lg cursor-pointer hover:bg-sky-100 dark:hover:bg-sky-800/50 transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 mx-auto text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M15 21v-1a6 6 0 00-1.781-4.121M12 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        <h3 class="font-semibold mt-2" data-lang="roleTeacher">Guru</h3>
+                    </div>
+                    <!-- Kartu Siswa -->
+                    <div data-role="siswa" class="role-card text-center p-4 border dark:border-gray-600 rounded-lg cursor-pointer hover:bg-sky-100 dark:hover:bg-sky-800/50 transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 mx-auto text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 14l9-5-9-5-9 5 9 5z" /><path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" /><path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222" /></svg>
+                        <h3 class="font-semibold mt-2" data-lang="roleStudent">Siswa</h3>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tahap 2: Pilihan Nama & Password -->
+            <div id="name-selection-view" class="hidden">
+                 <button id="back-to-roles" class="text-sm text-sky-600 dark:text-sky-400 hover:underline mb-4">&larr; <span data-lang="backButton">Kembali ke Pilihan Peran</span></button>
+                 <h2 id="name-selection-title" class="text-2xl font-bold text-center text-gray-900 dark:text-white"></h2>
+                 <div class="mt-8 space-y-6">
+                    <div>
+                        <label for="user-selector" class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300" data-lang="selectYourName">Pilih Nama Anda</label>
+                        <select id="user-selector" class="w-full p-3 border rounded-md bg-gray-50/80 dark:bg-gray-700/80 dark:border-gray-600 focus:ring-2 focus:ring-blue-500">
+                            <!-- Opsi pengguna akan diisi oleh JS -->
+                        </select>
+                    </div>
+                    
+                    <div id="password-field" class="hidden">
+                         <label for="password-input" class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300" data-lang="passwordLabel">Password</label>
+                        <input type="password" id="password-input" class="w-full p-3 border rounded-md bg-gray-50/80 dark:bg-gray-700/80 dark:border-gray-600 focus:ring-2 focus:ring-blue-500" data-lang-placeholder="passwordPlaceholder" placeholder="Masukkan Password">
+                    </div>
+
+                    <p id="login-error" class="text-red-500 text-sm text-center h-6 -my-2"></p>
+
+                    <button id="btn-login" class="w-full bg-blue-600 text-white p-3 rounded-md hover:bg-blue-700 transition font-semibold text-lg" data-lang="loginButton">Masuk</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Konten Aplikasi Utama (tersembunyi awalnya) -->
+    <div id="app-content" class="container mx-auto p-4 md:p-8 hidden">
+        
+        <!-- Pengaturan Bahasa, Tema, dan Logout -->
+        <div class="flex justify-end items-center gap-4 mb-4 no-print">
+             <!-- Language Switcher -->
+            <div class="flex items-center">
+                <span class="mr-2 text-sm font-medium">ID</span>
+                <label for="language-toggle" class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" value="" id="language-toggle" class="sr-only peer">
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                </label>
+                <span class="ml-2 text-sm font-medium">EN</span>
+            </div>
+             <!-- Theme Switcher -->
+            <button id="theme-toggle" type="button" class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 rounded-lg text-sm p-2.5">
+                <svg id="theme-toggle-dark-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+                <svg id="theme-toggle-light-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.707.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 100 2h1z" fill-rule="evenodd" clip-rule="evenodd"></path></svg>
+            </button>
+            <button id="btn-logout" class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition" data-lang="logoutButton">Keluar</button>
+        </div>
+
+        <header class="text-center mb-10 no-print">
+            <h1 class="text-4xl font-bold text-gray-900 dark:text-white" data-lang="appTitle">Aplikasi Penjadwalan Kelas</h1>
+            <p id="welcome-message" class="text-lg text-gray-600 dark:text-gray-400 mt-2"></p>
+        </header>
+
+        <!-- ======================= TAMPILAN ADMIN ======================= -->
+        <div id="admin-view" class="hidden">
+            <main class="grid grid-cols-1 lg:grid-cols-2 gap-8 no-print">
+                <!-- Kolom Input Data Master -->
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md space-y-6">
+                    <h2 class="text-2xl font-semibold border-b pb-3 dark:border-gray-600" data-lang="inputMasterTitle">1. Input Data Master</h2>
+                    <div>
+                        <h3 class="text-lg font-medium mb-2" data-lang="teacherData">Data Guru</h3>
+                        <form id="form-guru" class="flex flex-col sm:flex-row gap-2"><input type="text" id="nama-guru" data-lang-placeholder="teacherNamePlaceholder" placeholder="Nama Guru" class="flex-grow p-2 border rounded-md bg-gray-50 dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-blue-500" required><select id="mapel-guru" class="p-2 border rounded-md bg-gray-50 dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-blue-500" required><option value="" data-lang="selectSubjectOption">Pilih Mata Pelajaran</option></select><button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition" data-lang="addButton">Tambah</button></form>
+                        <table class="w-full mt-3 text-sm text-left"><thead class="bg-gray-100 dark:bg-gray-700"><tr><th class="p-2" data-lang="tableName">Nama</th><th class="p-2" data-lang="tableSubject">Mata Pelajaran</th><th class="p-2" data-lang="action">Aksi</th></tr></thead><tbody id="list-guru"></tbody></table>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-medium mb-2" data-lang="subjectData">Data Mata Pelajaran</h3>
+                        <form id="form-mapel" class="flex gap-2"><input type="text" id="nama-mapel" data-lang-placeholder="subjectNamePlaceholder" placeholder="Nama Mata Pelajaran" class="flex-grow p-2 border rounded-md bg-gray-50 dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-blue-500" required><button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition" data-lang="addButton">Tambah</button></form>
+                        <table class="w-full mt-3 text-sm text-left"><thead class="bg-gray-100 dark:bg-gray-700"><tr><th class="p-2" data-lang="tableSubjectName">Nama Mata Pelajaran</th><th class="p-2" data-lang="action">Aksi</th></tr></thead><tbody id="list-mapel"></tbody></table>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-medium mb-2" data-lang="classData">Data Kelas</h3>
+                        <form id="form-kelas" class="flex gap-2"><input type="text" id="nama-kelas" data-lang-placeholder="classNamePlaceholder" placeholder="Nama Kelas (cth: 10-A)" class="flex-grow p-2 border rounded-md bg-gray-50 dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-blue-500" required><button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition" data-lang="addButton">Tambah</button></form>
+                        <table class="w-full mt-3 text-sm text-left"><thead class="bg-gray-100 dark:bg-gray-700"><tr><th class="p-2" data-lang="tableClassName">Nama Kelas</th><th class="p-2" data-lang="action">Aksi</th></tr></thead><tbody id="list-kelas"></tbody></table>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-medium mb-2" data-lang="roomData">Data Ruang</h3>
+                        <form id="form-ruang" class="flex gap-2"><input type="text" id="nama-ruang" data-lang-placeholder="roomNamePlaceholder" placeholder="Nama Ruang (cth: R-101)" class="flex-grow p-2 border rounded-md bg-gray-50 dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-blue-500" required><button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition" data-lang="addButton">Tambah</button></form>
+                        <table class="w-full mt-3 text-sm text-left"><thead class="bg-gray-100 dark:bg-gray-700"><tr><th class="p-2" data-lang="tableRoomName">Nama Ruang</th><th class="p-2" data-lang="action">Aksi</th></tr></thead><tbody id="list-ruang"></tbody></table>
+                    </div>
+                </div>
+
+                <!-- Kolom Generate Jadwal dan Manajemen User -->
+                <div class="space-y-8">
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
+                        <h2 class="text-2xl font-semibold border-b pb-3 dark:border-gray-600" data-lang="generateScheduleTitle">2. Buat Jadwal</h2>
+                        <div class="mt-4"><p class="text-gray-600 dark:text-gray-400 mb-4" data-lang="generateScheduleDesc">Jadwal sudah dibuat secara default. Tombol ini akan membuat ulang jadwal secara acak dan menimpa jadwal yang ada.</p><button id="btn-generate" class="w-full bg-green-600 text-white px-4 py-3 rounded-md hover:bg-green-700 transition text-lg font-semibold" data-lang="generateButton">Buat Ulang Jadwal Otomatis</button><div id="generation-status" class="mt-4 text-center"></div></div>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
+                        <h2 class="text-2xl font-semibold border-b pb-3 dark:border-gray-600" data-lang="manageUsers">3. Kelola Pengguna</h2>
+                        <table class="w-full mt-3 text-sm text-left"><thead class="bg-gray-100 dark:bg-gray-700"><tr><th class="p-2" data-lang="tableName">Nama</th><th class="p-2" data-lang="role">Peran</th></tr></thead><tbody id="list-user"></tbody></table>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- ======================= TAMPILAN GURU ======================= -->
+        <div id="teacher-view" class="hidden">
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md no-print">
+                <h2 class="text-2xl font-semibold border-b pb-3 dark:border-gray-600" data-lang="studentInquiries">Tanggapan untuk Siswa</h2>
+                <div id="list-tanggapan" class="mt-4 space-y-4">
+                    <!-- Daftar tanggapan akan dirender oleh JavaScript di sini -->
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================= TAMPILAN SISWA ======================= -->
+        <div id="student-view" class="hidden">
+             <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md no-print">
+                <h2 class="text-2xl font-semibold" data-lang="viewScheduleTitle">Lihat Jadwal Kelas</h2>
+                <div class="mt-4">
+                    <label for="student-class-selector" class="block mb-2 text-sm font-medium" data-lang="selectYourClass">Pilih Kelas Anda:</label>
+                    <div class="flex items-center gap-4">
+                        <select id="student-class-selector" class="w-full md:w-1/2 p-3 border rounded-md bg-gray-50 dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-blue-500">
+                             <!-- Opsi kelas akan diisi oleh JS -->
+                        </select>
+                        <button id="btn-lihat-jadwal" class="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition font-semibold disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed" data-lang="viewScheduleButton" disabled>Lihat Jadwal</button>
+                    </div>
+                </div>
+            </div>
+            <!-- Container baru untuk ringkasan mata pelajaran -->
+            <div id="student-subject-summary" class="mt-6 no-print">
+                <!-- Ringkasan akan ditampilkan di sini oleh JS -->
+            </div>
+        </div>
+
+        <!-- Bagian Tampilan Jadwal (Umum untuk semua peran) -->
+        <section id="area-cetak" class="mt-12">
+            <header class="text-center mb-6 hidden print:block">
+                 <h1 class="text-2xl font-bold text-gray-900" data-lang="scheduleTitlePrint">Jadwal Pelajaran</h1>
+            </header>
+            <div class="flex justify-end mb-4 no-print">
+                <button id="btn-cetak" class="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-800 transition hidden" data-lang="printButton">Cetak Jadwal</button>
+            </div>
+            <div id="hasil-jadwal" class="space-y-10">
+                <!-- Hasil jadwal akan ditampilkan di sini -->
+            </div>
+        </section>
+
+    </div>
+
+    <!-- Custom Confirmation Modal -->
+    <div id="delete-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg w-full max-w-sm m-4">
+            <h3 class="text-lg font-bold mb-4" data-lang="confirmDeleteTitle">Konfirmasi Hapus</h3>
+            <p class="mb-6" data-lang="confirmDeleteText">Anda yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.</p>
+            <div class="flex justify-end gap-4">
+                <button id="btn-cancel-delete" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500" data-lang="cancelButton">Batal</button>
+                <button id="btn-confirm-delete" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700" data-lang="deleteButton">Hapus</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // --- KAMUS UNTUK TERJEMAHAN ---
+    const translations = {
+        id: {
+            loginTitle: "Masuk Sebagai", roleAdmin: "Admin", roleTeacher: "Guru", roleStudent: "Siswa", loginButton: "Masuk", logoutButton: "Keluar",
+            backButton: "Kembali ke Pilihan Peran",
+            appTitle: "Aplikasi Penjadwalan Kelas", appSubtitle: "Atur data master dan buat jadwal secara otomatis.",
+            inputMasterTitle: "1. Input Data Master", teacherData: "Data Guru", teacherNamePlaceholder: "Nama Guru", selectSubjectOption: "Pilih Mata Pelajaran", addButton: "Tambah", tableName: "Nama", tableSubject: "Mata Pelajaran",
+            subjectData: "Data Mata Pelajaran", subjectNamePlaceholder: "Nama Mata Pelajaran", tableSubjectName: "Nama Mata Pelajaran",
+            classData: "Data Kelas", classNamePlaceholder: "Nama Kelas (cth: 10-A)", tableClassName: "Nama Kelas",
+            roomData: "Data Ruang", roomNamePlaceholder: "Nama Ruang (cth: R-101)", tableRoomName: "Nama Ruang",
+            action: "Aksi", deleteButton: "Hapus",
+            confirmDeleteTitle: "Konfirmasi Hapus", confirmDeleteText: "Anda yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.", cancelButton: "Batal",
+            generateScheduleTitle: "2. Buat Jadwal", generateScheduleDesc: "Jadwal sudah dibuat secara default. Tombol ini akan membuat ulang jadwal secara acak dan menimpa jadwal yang ada.", generateButton: "Buat Ulang Jadwal Otomatis",
+            manageUsers: "3. Kelola Pengguna", role: "Peran",
+            generatingStatus: "Membuat jadwal...", generatedStatus: "Jadwal berhasil dibuat!",
+            printButton: "Cetak Jadwal", scheduleTitlePrint: "Jadwal Pelajaran", scheduleForClass: "Jadwal Kelas", hour: "Jam", day: { Senin: "Senin", Selasa: "Selasa", Rabu: "Rabu", Kamis: "Kamis", Jumat: "Jumat" },
+            noSchedule: "Jadwal belum dibuat. Silakan klik tombol 'Buat Jadwal Otomatis'.", noScheduleForYou: "Jadwal untuk Anda belum tersedia.",
+            welcome: "Selamat Datang",
+            studentInquiries: "Tanggapan untuk Siswa", inquiry1: "\"Pak, apakah ada tugas tambahan untuk Biologi minggu ini?\"", inquiry2: "\"Bu, materi Sejarah kemarin bisa di-share filenya?\"",
+            replyButton: "Balas", sendButton: "Kirim", yourResponse: "Tanggapan Anda:",
+            viewScheduleTitle: "Lihat Jadwal Kelas", selectYourClass: "Pilih Kelas Anda:", selectClassPrompt: "Pilih kelas untuk melihat jadwal",
+            selectYourName: "Pilih Nama Anda", selectNamePrompt: "Pilih nama...",
+            subjectsInThisClass: "Mata Pelajaran di Kelas Ini",
+            viewScheduleButton: "Lihat Jadwal",
+            passwordLabel: "Password", passwordPlaceholder: "Masukkan Password", loginError: "Password salah!"
+        },
+        en: {
+            loginTitle: "Login As", roleAdmin: "Admin", roleTeacher: "Teacher", roleStudent: "Student", loginButton: "Login", logoutButton: "Logout",
+            backButton: "Back to Role Selection",
+            appTitle: "Class Scheduling Application", appSubtitle: "Manage master data and generate schedules automatically.",
+            inputMasterTitle: "1. Master Data Input", teacherData: "Teacher Data", teacherNamePlaceholder: "Teacher's Name", selectSubjectOption: "Select Subject", addButton: "Add", tableName: "Name", tableSubject: "Subject",
+            subjectData: "Subject Data", subjectNamePlaceholder: "Subject Name", tableSubjectName: "Subject Name",
+            classData: "Class Data", classNamePlaceholder: "Class Name (e.g., 10-A)", tableClassName: "Class Name",
+            roomData: "Room Data", roomNamePlaceholder: "Room Name (e.g., R-101)", tableRoomName: "Room Name",
+            action: "Action", deleteButton: "Delete",
+            confirmDeleteTitle: "Confirm Deletion", confirmDeleteText: "Are you sure you want to delete this data? This action cannot be undone.", cancelButton: "Cancel",
+            generateScheduleTitle: "2. Generate Schedule", generateScheduleDesc: "A default schedule has been created. This button will regenerate a random schedule, overwriting the current one.", generateButton: "Regenerate Schedule Automatically",
+            manageUsers: "3. Manage Users", role: "Role",
+            generatingStatus: "Generating schedule...", generatedStatus: "Schedule generated successfully!",
+            printButton: "Print Schedule", scheduleTitlePrint: "Class Schedule", scheduleForClass: "Class Schedule", hour: "Hour", day: { Senin: "Monday", Selasa: "Tuesday", Rabu: "Wednesday", Kamis: "Thursday", Jumat: "Friday" },
+            noSchedule: "Schedule has not been generated. Please click the 'Generate Schedule Automatically' button.", noScheduleForYou: "Schedule for you is not available yet.",
+            welcome: "Welcome",
+            studentInquiries: "Responses for Students", inquiry1: "\"Sir, is there any additional homework for Biology this week?\"", inquiry2: "\"Ma'am, can you share the file for yesterday's History material?\"",
+            replyButton: "Reply", sendButton: "Send", yourResponse: "Your Response:",
+            viewScheduleTitle: "View Class Schedule", selectYourClass: "Select Your Class:", selectClassPrompt: "Select a class to view the schedule",
+            selectYourName: "Select Your Name", selectNamePrompt: "Select name...",
+            subjectsInThisClass: "Subjects in This Class",
+            viewScheduleButton: "View Schedule",
+            passwordLabel: "Password", passwordPlaceholder: "Enter Password", loginError: "Incorrect password!"
+        }
+    };
+    
+    // --- DATABASE SEMENTARA (LOKAL) ---
+    let users = [
+        { id: 101, name: 'Admin Utama', role: 'admin'}, { id: 1, name: 'Budi Santoso', role: 'guru'}, 
+        { id: 2, name: 'Ani Yuliani', role: 'guru'}, { id: 3, name: 'Citra Lestari', role: 'guru'},
+        { id: 4, name: 'Dedi Kusuma', role: 'guru'}, { id: 5, name: 'Eka Putri', role: 'guru'},
+        { id: 6, name: 'Fajar Nugraha', role: 'guru'}, { id: 7, name: 'Gita Permata', role: 'guru'},
+        { id: 8, name: 'Hadi Wijaya', role: 'guru'}, { id: 9, name: 'Indah Cahyani', role: 'guru'},
+        { id: 10, name: 'Joko Susilo', role: 'guru'}, { id: 11, name: 'Kartika Dewi', role: 'guru'},
+        { id: 12, name: 'Lia Amelia', role: 'guru'}, { id: 201, name: 'Ahmad', role: 'siswa'},
+        { id: 202, name: 'Rina', role: 'siswa'}, { id: 203, name: 'Charlie', role: 'siswa'}, { id: 204, name: 'Diana', role: 'siswa'},
+    ];
+
+    let data = {
+        guru: [
+            { id: 1, nama: 'Budi Santoso', id_mapel: 1 }, { id: 2, nama: 'Ani Yuliani', id_mapel: 2 },
+            { id: 3, nama: 'Citra Lestari', id_mapel: 3 }, { id: 4, nama: 'Dedi Kusuma', id_mapel: 4 },
+            { id: 5, nama: 'Eka Putri', id_mapel: 5 }, { id: 6, nama: 'Fajar Nugraha', id_mapel: 6 },
+            { id: 7, nama: 'Gita Permata', id_mapel: 7 }, { id: 8, nama: 'Hadi Wijaya', id_mapel: 8 },
+            { id: 9, nama: 'Indah Cahyani', id_mapel: 9 }, { id: 10, nama: 'Joko Susilo', id_mapel: 10 },
+            { id: 11, nama: 'Kartika Dewi', id_mapel: 11 }, { id: 12, name: 'Lia Amelia', id_mapel: 12 },
+        ],
+        mapel: [
+            { id: 1, nama: 'Matematika' }, { id: 2, nama: 'Bahasa Indonesia' },
+            { id: 3, nama: 'Biologi' }, { id: 4, nama: 'Sejarah' }, { id: 5, nama: 'Fisika' }, 
+            { id: 6, nama: 'Kimia' }, { id: 7, nama: 'Bahasa Inggris' }, { id: 8, nama: 'Ekonomi' },
+            { id: 9, nama: 'Geografi' }, { id: 10, nama: 'Sosiologi' }, { id: 11, nama: 'PJOK' }, 
+            { id: 12, nama: 'Seni Budaya' },
+        ],
+        kelas: [ 
+            { id: 1, nama: 'XII.A' }, { id: 2, nama: 'XII.B' }, { id: 3, nama: 'XII.C' }, { id: 4, nama: 'XII.D' },
+            { id: 5, nama: 'XII.E' }, { id: 6, nama: 'XII.F' }, { id: 7, nama: 'XII.G' }, { id: 8, nama: 'XII.H' },
+            { id: 9, nama: 'XII.I' }, { id: 10, nama: 'XII.J' }, { id: 11, nama: 'XII.K' }, { id: 12, nama: 'XII.L' },
+        ],
+        ruang: [ 
+            { id: 1, nama: 'R-101' }, { id: 2, nama: 'R-102' }, { id: 3, nama: 'Lab-Bio' }, 
+            { id: 4, nama: 'Lab-Fisika' }, { id: 5, nama: 'Lab-Kimia' }, { id: 6, nama: 'R-201' },
+            { id: 7, nama: 'R-202' }, { id: 8, nama: 'Aula' }, { id: 9, nama: 'Lapangan' }
+        ]
+    };
+
+    let tanggapan = [
+        { id: 1, studentName: 'Ahmad', studentClass: 'XII.A', inquiryText: "Pak, apakah ada tugas tambahan untuk Biologi minggu ini?", replyText: null, repliedBy: null },
+        { id: 2, studentName: 'Rina', studentClass: 'XII.B', inquiryText: "Bu, materi Sejarah kemarin bisa di-share filenya?", replyText: null, repliedBy: null }
+    ];
+    
+    const HARI = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
+    const JAM = ['07:00-08:00', '08:00-09:00', '09:00-10:00', '10:00-11:00', '11:00-12:00'];
+    let currentLang = 'id';
+    let currentUser = null;
+    let jadwal = {};
+
+    // --- FUNGSI AUTH & UI CONTROL ---
+    const loginScreen = document.getElementById('login-screen');
+    const appContent = document.getElementById('app-content');
+    const userSelector = document.getElementById('user-selector');
+    const roleSelectionView = document.getElementById('role-selection-view');
+    const nameSelectionView = document.getElementById('name-selection-view');
+    const nameSelectionTitle = document.getElementById('name-selection-title');
+    const passwordField = document.getElementById('password-field');
+    const loginError = document.getElementById('login-error');
+    
+    function showLogin() {
+        loginScreen.style.display = 'flex';
+        appContent.style.display = 'none';
+        roleSelectionView.style.display = 'block';
+        nameSelectionView.style.display = 'none';
+        currentUser = null;
+        sessionStorage.removeItem('currentUser');
+        loginError.textContent = '';
+    }
+
+    function showApp() {
+        loginScreen.style.display = 'none';
+        appContent.style.display = 'block';
+        document.getElementById('welcome-message').textContent = `${translations[currentLang].welcome}, ${currentUser.name}!`;
+        updateViewBasedOnRole();
+    }
+    
+    function updateViewBasedOnRole() {
+        document.getElementById('admin-view').style.display = 'none';
+        document.getElementById('teacher-view').style.display = 'none';
+        document.getElementById('student-view').style.display = 'none';
+        
+        renderAll();
+
+        if (currentUser.role === 'admin') {
+            document.getElementById('admin-view').style.display = 'block';
+        } else if (currentUser.role === 'guru') {
+            document.getElementById('teacher-view').style.display = 'block';
+        } else if (currentUser.role === 'siswa') {
+            document.getElementById('student-view').style.display = 'block';
+        }
+    }
+    
+    roleSelectionView.addEventListener('click', (e) => {
+        const roleCard = e.target.closest('.role-card');
+        if (roleCard) {
+            const role = roleCard.dataset.role;
+            populateUserSelector(role);
+            
+            const roleKey = {admin: 'roleAdmin', guru: 'roleTeacher', siswa: 'roleStudent'}[role];
+            nameSelectionTitle.textContent = `${translations[currentLang].loginTitle} ${translations[currentLang][roleKey]}`;
+            
+            passwordField.classList.remove('hidden');
+            
+            roleSelectionView.style.display = 'none';
+            nameSelectionView.style.display = 'block';
+        }
+    });
+
+    document.getElementById('back-to-roles').addEventListener('click', () => {
+        roleSelectionView.style.display = 'block';
+        nameSelectionView.style.display = 'none';
+        loginError.textContent = '';
+    });
+
+
+    function populateUserSelector(role = null) {
+        userSelector.innerHTML = `<option value="">${translations[currentLang].selectNamePrompt}</option>`;
+        const usersToDisplay = role ? users.filter(u => u.role === role) : [];
+        if(usersToDisplay.length > 0) {
+            usersToDisplay.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.id;
+                option.textContent = user.name;
+                userSelector.appendChild(option);
+            });
+        }
+    }
+
+    document.getElementById('btn-login').addEventListener('click', () => {
+        const selectedUserId = parseInt(userSelector.value);
+        if (!selectedUserId) return;
+
+        loginError.textContent = '';
+        currentUser = users.find(u => u.id === selectedUserId);
+        
+        const password = document.getElementById('password-input').value;
+        let passwordCorrect = false;
+
+        if (currentUser.role === 'admin' && password === '12345678') {
+            passwordCorrect = true;
+        } else if (currentUser.role === 'guru' && password === 'GURUCYBERAYA') {
+            passwordCorrect = true;
+        } else if (currentUser.role === 'siswa' && password === '12345678') {
+            passwordCorrect = true;
+        }
+
+        if (passwordCorrect) {
+            sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+            showApp();
+            document.getElementById('password-input').value = '';
+        } else {
+            loginError.textContent = translations[currentLang].loginError;
+        }
+    });
+
+    document.getElementById('btn-logout').addEventListener('click', showLogin);
+
+    // --- FUNGSI PENGATURAN BAHASA DAN TEMA ---
+    const languageToggle = document.getElementById('language-toggle');
+
+    function setLanguage(lang) {
+        currentLang = lang;
+        document.documentElement.lang = lang;
+        document.querySelectorAll('[data-lang]').forEach(el => {
+            const key = el.getAttribute('data-lang');
+            if (translations[lang][key] && typeof translations[lang][key] !== 'object') { 
+                el.textContent = translations[lang][key]; 
+            }
+        });
+        document.querySelectorAll('[data-lang-placeholder]').forEach(el => {
+            const key = el.getAttribute('data-lang-placeholder');
+             if (translations[lang][key]) { el.placeholder = translations[lang][key]; }
+        });
+        localStorage.setItem('language', lang);
+        if (currentUser) {
+             document.getElementById('welcome-message').textContent = `${translations[currentLang].welcome}, ${currentUser.name}!`;
+        }
+        if(appContent.style.display === 'block'){
+            updateViewBasedOnRole();
+        }
+    }
+
+    languageToggle.addEventListener('change', (e) => { setLanguage(e.target.checked ? 'en' : 'id'); });
+
+    // --- FUNGSI RENDER DATA ---
+    function renderAll() {
+        renderGuru(); renderMapel(); renderKelas(); renderRuang(); renderUsers(); renderTanggapan();
+        updateMapelOptions(); updateStudentClassOptions();
+        renderJadwal();
+    }
+    function renderGuru() { const list = document.getElementById('list-guru'); list.innerHTML = data.guru.map(g => { const mapel = data.mapel.find(m => m.id === g.id_mapel); return `<tr class="border-b dark:border-gray-700"><td class="p-2">${g.nama}</td><td class="p-2">${mapel ? mapel.nama : ''}</td><td class="p-2"><button class="text-red-500 hover:text-red-700 text-sm font-medium btn-delete" data-id="${g.id}" data-type="guru">${translations[currentLang].deleteButton}</button></td></tr>`; }).join(''); }
+    function renderMapel() { const list = document.getElementById('list-mapel'); list.innerHTML = data.mapel.map(m => `<tr class="border-b dark:border-gray-700"><td class="p-2">${m.nama}</td><td class="p-2"><button class="text-red-500 hover:text-red-700 text-sm font-medium btn-delete" data-id="${m.id}" data-type="mapel">${translations[currentLang].deleteButton}</button></td></tr>`).join(''); }
+    function renderKelas() { const list = document.getElementById('list-kelas'); list.innerHTML = data.kelas.map(k => `<tr class="border-b dark:border-gray-700"><td class="p-2">${k.nama}</td><td class="p-2"><button class="text-red-500 hover:text-red-700 text-sm font-medium btn-delete" data-id="${k.id}" data-type="kelas">${translations[currentLang].deleteButton}</button></td></tr>`).join(''); }
+    function renderRuang() { const list = document.getElementById('list-ruang'); list.innerHTML = data.ruang.map(r => `<tr class="border-b dark:border-gray-700"><td class="p-2">${r.nama}</td><td class="p-2"><button class="text-red-500 hover:text-red-700 text-sm font-medium btn-delete" data-id="${r.id}" data-type="ruang">${translations[currentLang].deleteButton}</button></td></tr>`).join(''); }
+    function renderUsers() { const list = document.getElementById('list-user'); list.innerHTML = users.map(u => `<tr class="border-b dark:border-gray-700"><td class="p-2">${u.name}</td><td class="p-2">${u.role}</td></tr>`).join(''); }
+
+    function updateMapelOptions() { const sel = document.getElementById('mapel-guru'); const opt = sel.querySelector('option[value=""]'); sel.innerHTML = ''; if (opt) {sel.appendChild(opt)}; data.mapel.forEach(m => { const o = document.createElement('option'); o.value = m.id; o.textContent = m.nama; sel.appendChild(o); }); }
+    function updateStudentClassOptions() { const sel = document.getElementById('student-class-selector'); sel.innerHTML = `<option value="" data-lang="selectClassPrompt">${translations[currentLang].selectClassPrompt}</option>`; data.kelas.forEach(k => { const o = document.createElement('option'); o.value = k.id; o.textContent = k.nama; sel.appendChild(o); }); }
+
+    function renderTanggapan() {
+        const container = document.getElementById('list-tanggapan');
+        container.innerHTML = tanggapan.map(t => `
+            <div class="border p-4 rounded-lg dark:border-gray-600" id="tanggapan-${t.id}">
+                <p class="font-semibold">${t.studentName} (${t.studentClass}):</p>
+                <p class="text-gray-700 dark:text-gray-300 mb-2">"${t.inquiryText}"</p>
+                ${t.replyText ? `<div class="mt-3 pt-3 border-t dark:border-gray-700"><p class="font-semibold text-green-600 dark:text-green-400">${translations[currentLang].yourResponse} (${t.repliedBy}):</p><p class="text-gray-700 dark:text-gray-300">"${t.replyText}"</p></div>` : `<button class="text-sm text-blue-600 hover:underline btn-balas" data-id="${t.id}" data-lang="replyButton">${translations[currentLang].replyButton}</button><div class="reply-form mt-3 pt-3 border-t dark:border-gray-700 hidden"><textarea class="w-full p-2 border rounded-md bg-gray-50 dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-blue-500" rows="2"></textarea><button class="mt-2 px-4 py-1 bg-green-600 text-white rounded-md hover:bg-green-700 btn-kirim-balasan" data-id="${t.id}" data-lang="sendButton">${translations[currentLang].sendButton}</button></div>`}
+            </div>
+        `).join('');
+    }
+
+    // --- LOGIKA AKSI PENGGUNA ---
+
+    document.getElementById('teacher-view').addEventListener('click', function(e) {
+        if (e.target.classList.contains('btn-balas')) {
+            const id = e.target.dataset.id;
+            const form = document.querySelector(`#tanggapan-${id} .reply-form`);
+            form.classList.toggle('hidden');
+        }
+        if (e.target.classList.contains('btn-kirim-balasan')) {
+            const id = parseInt(e.target.dataset.id);
+            const textarea = document.querySelector(`#tanggapan-${id} textarea`);
+            const replyText = textarea.value.trim();
+            if (replyText) {
+                const tanggapanItem = tanggapan.find(t => t.id === id);
+                tanggapanItem.replyText = replyText;
+                tanggapanItem.repliedBy = currentUser.name;
+                renderTanggapan();
+            }
+        }
+    });
+
+    document.getElementById('form-guru').addEventListener('submit', function(e) { e.preventDefault(); const nameInput = document.getElementById('nama-guru'); const mapelInput = document.getElementById('mapel-guru'); if (nameInput.value.trim() && mapelInput.value) { const newId = Date.now(); users.push({ id: newId, name: nameInput.value.trim(), role: 'guru' }); data.guru.push({ id: newId, nama: nameInput.value.trim(), id_mapel: parseInt(mapelInput.value) }); renderGuru(); renderUsers(); nameInput.value = ''; mapelInput.value = ''; } });
+    document.getElementById('form-mapel').addEventListener('submit', function(e) { e.preventDefault(); const input = document.getElementById('nama-mapel'); if (input.value.trim()) { data.mapel.push({ id: Date.now(), nama: input.value.trim() }); renderMapel(); updateMapelOptions(); input.value = ''; } });
+    document.getElementById('form-kelas').addEventListener('submit', function(e) { e.preventDefault(); const input = document.getElementById('nama-kelas'); if (input.value.trim()) { data.kelas.push({ id: Date.now(), nama: input.value.trim() }); renderKelas(); updateStudentClassOptions(); input.value = ''; } });
+    document.getElementById('form-ruang').addEventListener('submit', function(e) { e.preventDefault(); const input = document.getElementById('nama-ruang'); if (input.value.trim()) { data.ruang.push({ id: Date.now(), nama: input.value.trim() }); renderRuang(); input.value = ''; } });
+    
+    // --- LOGIKA DELETE ---
+    const deleteModal = document.getElementById('delete-modal');
+    const btnConfirmDelete = document.getElementById('btn-confirm-delete');
+    const btnCancelDelete = document.getElementById('btn-cancel-delete');
+    let itemToDelete = null;
+
+    function showDeleteModal() { deleteModal.classList.remove('hidden'); }
+    function hideDeleteModal() { deleteModal.classList.add('hidden'); itemToDelete = null; }
+
+    document.getElementById('admin-view').addEventListener('click', function(e) { if (e.target.classList.contains('btn-delete')) { itemToDelete = { id: parseInt(e.target.dataset.id), type: e.target.dataset.type }; showDeleteModal(); } });
+    btnCancelDelete.addEventListener('click', hideDeleteModal);
+    btnConfirmDelete.addEventListener('click', function() { if (itemToDelete) { const { id, type } = itemToDelete; if (type === 'guru') { users = users.filter(u => u.id !== id); } data[type] = data[type].filter(item => item.id !== id); renderAll(); hideDeleteModal(); } });
+
+    // --- LOGIKA JADWAL ---
+    document.getElementById('btn-generate').addEventListener('click', function() { const statusDiv = document.getElementById('generation-status'); statusDiv.textContent = translations[currentLang].generatingStatus; statusDiv.classList.add('text-blue-600'); setTimeout(() => { jadwal = generateRandomSchedule(); renderJadwal(); statusDiv.textContent = translations[currentLang].generatedStatus; statusDiv.classList.remove('text-blue-600'); statusDiv.classList.add('text-green-600'); }, 50); });
+    
+    function generateRandomSchedule() {
+        let newJadwal = {};
+        data.kelas.forEach(k => {
+            newJadwal[k.id] = {};
+            HARI.forEach(h => {
+                newJadwal[k.id][h] = {};
+                JAM.forEach(j => { newJadwal[k.id][h][j] = null; });
+            });
+        });
+        HARI.forEach(hari => {
+            JAM.forEach(jam => {
+                let guruSudahMengajar = new Set();
+                let ruangSudahDipakai = new Set();
+                data.kelas.forEach(k => {
+                    const mapelAcak = [...data.mapel].sort(() => Math.random() - 0.5);
+                    for (const mapel of mapelAcak) {
+                        const guruTersedia = data.guru.filter(g => g.id_mapel === mapel.id && !guruSudahMengajar.has(g.id));
+                        if (guruTersedia.length > 0) {
+                            const ruangTersedia = data.ruang.filter(r => !ruangSudahDipakai.has(r.id));
+                            if (ruangTersedia.length > 0) {
+                                const guruDipilih = guruTersedia[0];
+                                const ruangDipilih = ruangTersedia[0];
+                                newJadwal[k.id][hari][jam] = { mapel: mapel.nama, guru: guruDipilih.nama, ruang: ruangDipilih.nama };
+                                guruSudahMengajar.add(guruDipilih.id);
+                                ruangSudahDipakai.add(ruangDipilih.id);
+                                break;
+                            }
+                        }
+                    }
+                });
+            });
+        });
+        sessionStorage.setItem('jadwal', JSON.stringify(newJadwal));
+        return newJadwal;
+    }
+
+    // --- RENDER JADWAL ---
+    function renderJadwal(filter = {}) {
+        const container = document.getElementById('hasil-jadwal');
+        container.innerHTML = '';
+        if (Object.keys(jadwal).length === 0) { container.innerHTML = `<p class="text-center text-gray-500">${currentUser.role === 'admin' ? translations[currentLang].noSchedule : translations[currentLang].noScheduleForYou}</p>`; return; }
+        
+        let kelasToRender = [];
+        if (currentUser.role === 'admin' || currentUser.role === 'guru') {
+            kelasToRender = data.kelas;
+        } else if (currentUser.role === 'siswa' && filter.classId) {
+            kelasToRender = data.kelas.filter(k => k.id === filter.classId);
+        }
+        
+        kelasToRender.forEach(k => {
+            const jadwalKelas = jadwal[k.id];
+            if (!jadwalKelas) return;
+            let tableHTML = `<div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md overflow-x-auto"><h3 class="text-xl font-bold mb-4 text-gray-800 dark:text-gray-200">${translations[currentLang].scheduleForClass}: ${k.nama}</h3><table class="w-full border-collapse text-center"><thead><tr class="bg-gray-200 dark:bg-gray-700"><th class="border dark:border-gray-600 p-2 w-1/6">${translations[currentLang].hour}</th>${HARI.map(h => `<th class="border dark:border-gray-600 p-2">${translations[currentLang].day[h]}</th>`).join('')}</tr></thead><tbody>${JAM.map(jam => `<tr><td class="border dark:border-gray-600 p-2 font-medium bg-gray-100 dark:bg-gray-700">${jam}</td>${HARI.map(hari => { const slot = jadwalKelas[hari]?.[jam]; return slot ? `<td class="border dark:border-gray-600 p-2 text-xs leading-tight"><div class="font-semibold text-blue-700 dark:text-blue-400">${slot.mapel}</div><div class="text-gray-600 dark:text-gray-300">${slot.guru}</div><div class="text-gray-500 dark:text-gray-400 italic">(${slot.ruang})</div></td>` : '<td class="border dark:border-gray-600 p-2 bg-gray-50 dark:bg-gray-800"></td>'; }).join('')}</tr>`).join('')}</tbody></table></div>`;
+            container.innerHTML += tableHTML;
+        });
+        
+        document.getElementById('btn-cetak').style.display = container.innerHTML !== '' ? 'block' : 'none';
+    }
+    
+    // --- EVENT LISTENER SISWA ---
+    const studentClassSelector = document.getElementById('student-class-selector');
+    const btnLihatJadwal = document.getElementById('btn-lihat-jadwal');
+    studentClassSelector.addEventListener('change', () => { btnLihatJadwal.disabled = !studentClassSelector.value; document.getElementById('student-subject-summary').innerHTML = ''; document.getElementById('hasil-jadwal').innerHTML = ''; });
+    btnLihatJadwal.addEventListener('click', () => { const classId = parseInt(studentClassSelector.value); const summaryContainer = document.getElementById('student-subject-summary'); if (classId && Object.keys(jadwal).length > 0) { const jadwalKelas = jadwal[classId]; const subjects = new Set(); if (jadwalKelas) { HARI.forEach(h => { JAM.forEach(j => { if (jadwalKelas[h]?.[j]?.mapel) subjects.add(jadwalKelas[h][j].mapel); }); }); } if (subjects.size > 0) { summaryContainer.innerHTML = `<div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md"><h3 class="text-lg font-semibold mb-3" data-lang="subjectsInThisClass">${translations[currentLang].subjectsInThisClass}</h3><div class="flex flex-wrap gap-2">${Array.from(subjects).sort().map(s => `<span class="bg-sky-100 text-sky-800 text-sm font-medium px-3 py-1 rounded-full dark:bg-sky-900 dark:text-sky-300">${s}</span>`).join('')}</div></div>`; } else { summaryContainer.innerHTML = ''; } renderJadwal({ role: 'siswa', classId: classId }); } else { document.getElementById('hasil-jadwal').innerHTML = `<p class="text-center text-gray-500">${translations[currentLang].noScheduleForYou}</p>`; summaryContainer.innerHTML = ''; } });
+
+    // --- FUNGSI CETAK ---
+    document.getElementById('btn-cetak').addEventListener('click', () => window.print());
+
+    // --- INISIALISASI ---
+    document.addEventListener('DOMContentLoaded', () => {
+        const savedUser = sessionStorage.getItem('currentUser');
+        const savedJadwal = sessionStorage.getItem('jadwal');
+        if(savedJadwal) {
+            jadwal = JSON.parse(savedJadwal);
+        } else {
+            // Jika tidak ada jadwal di session, buat jadwal acak pertama kali
+            jadwal = generateRandomSchedule();
+        }
+
+        if (savedUser) {
+            currentUser = JSON.parse(savedUser);
+            showApp();
+        } else {
+            showLogin();
+        }
+        
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
+        const themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
+        function toggleTheme() { themeToggleDarkIcon.classList.toggle('hidden'); themeToggleLightIcon.classList.toggle('hidden'); const isDark = document.documentElement.classList.toggle('dark'); localStorage.setItem('theme', isDark ? 'dark' : 'light'); }
+        if (document.documentElement.classList.contains('dark')) { themeToggleLightIcon.classList.remove('hidden'); } else { themeToggleDarkIcon.classList.remove('hidden'); }
+        themeToggle.addEventListener('click', toggleTheme);
+
+        const savedLang = localStorage.getItem('language') || 'id';
+        languageToggle.checked = savedLang === 'en';
+        setLanguage(savedLang);
+    });
+    </script>
+</body>
+</html>
+
