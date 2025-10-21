@@ -6,6 +6,8 @@
     <title>Aplikasi Penjadwalan Kelas</title>
     <!-- Menggunakan Tailwind CSS untuk tampilan yang modern dan responsif -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -105,6 +107,12 @@
                 <h1 class="font-logo text-4xl font-bold text-gray-800 dark:text-white tracking-widest uppercase">SMA Cyberaya</h1>
             </div>
             
+            <!-- Peringatan Koneksi Supabase (BARU) -->
+            <div id="supabase-warning" class="hidden bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md" role="alert">
+                <p class="font-bold">Koneksi Gagal!</p>
+                <p>Aplikasi belum terhubung ke database. Ganti `SUPABASE_URL` dan `SUPABASE_ANON_KEY` di dalam file HTML ini dengan kunci dari dasbor Supabase Anda.</p>
+            </div>
+
             <!-- Tahap 1: Pilihan Peran -->
             <div id="role-selection-view">
                 <h2 class="text-2xl font-bold text-center text-gray-900 dark:text-white" data-lang="loginTitle">Masuk Sebagai</h2>
@@ -279,6 +287,17 @@
     </div>
 
     <script>
+    // =======================================================================
+    // --- KONEKSI SUPABASE (WAJIB DIISI!) ---
+    // GANTI DUA BARIS DI BAWAH INI DENGAN URL DAN KUNCI API DARI SUPABASE ANDA
+    // =======================================================================
+    const SUPABASE_URL = 'https://esxophoarxoluvyrjzpe.supabase.co'; // <-- GANTI INI!
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzeG9waG9hcnhvbHV2eXJqenBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA0MDcxNjYsImV4cCI6MjA3NTk4MzE2Nn0.UQbh1SnPUx_Z0nY1uYYXtmJmGt6MJ_m2vX40HwoTbEE';          // <-- GANTI INI!
+    // =======================================================================
+
+    const { createClient } = supabase;
+    const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
     // --- KAMUS UNTUK TERJEMAHAN ---
     const translations = {
         id: {
@@ -331,56 +350,16 @@
         }
     };
     
-    // --- DATABASE SEMENTARA (LOKAL) ---
-    let users = [
-        { id: 101, name: 'Admin Utama', role: 'admin'}, { id: 1, name: 'Budi Santoso', role: 'guru'}, 
-        { id: 2, name: 'Ani Yuliani', role: 'guru'}, { id: 3, name: 'Citra Lestari', role: 'guru'},
-        { id: 4, name: 'Dedi Kusuma', role: 'guru'}, { id: 5, name: 'Eka Putri', role: 'guru'},
-        { id: 6, name: 'Fajar Nugraha', role: 'guru'}, { id: 7, name: 'Gita Permata', role: 'guru'},
-        { id: 8, name: 'Hadi Wijaya', role: 'guru'}, { id: 9, name: 'Indah Cahyani', role: 'guru'},
-        { id: 10, name: 'Joko Susilo', role: 'guru'}, { id: 11, name: 'Kartika Dewi', role: 'guru'},
-        { id: 12, name: 'Lia Amelia', role: 'guru'}, { id: 201, name: 'Ahmad', role: 'siswa'},
-        { id: 202, name: 'Rina', role: 'siswa'}, { id: 203, name: 'Charlie', role: 'siswa'}, { id: 204, name: 'Diana', role: 'siswa'},
-    ];
-
-    let data = {
-        guru: [
-            { id: 1, nama: 'Budi Santoso', id_mapel: 1 }, { id: 2, nama: 'Ani Yuliani', id_mapel: 2 },
-            { id: 3, nama: 'Citra Lestari', id_mapel: 3 }, { id: 4, nama: 'Dedi Kusuma', id_mapel: 4 },
-            { id: 5, nama: 'Eka Putri', id_mapel: 5 }, { id: 6, nama: 'Fajar Nugraha', id_mapel: 6 },
-            { id: 7, nama: 'Gita Permata', id_mapel: 7 }, { id: 8, nama: 'Hadi Wijaya', id_mapel: 8 },
-            { id: 9, nama: 'Indah Cahyani', id_mapel: 9 }, { id: 10, nama: 'Joko Susilo', id_mapel: 10 },
-            { id: 11, nama: 'Kartika Dewi', id_mapel: 11 }, { id: 12, name: 'Lia Amelia', id_mapel: 12 },
-        ],
-        mapel: [
-            { id: 1, nama: 'Matematika' }, { id: 2, nama: 'Bahasa Indonesia' },
-            { id: 3, nama: 'Biologi' }, { id: 4, nama: 'Sejarah' }, { id: 5, nama: 'Fisika' }, 
-            { id: 6, nama: 'Kimia' }, { id: 7, nama: 'Bahasa Inggris' }, { id: 8, nama: 'Ekonomi' },
-            { id: 9, nama: 'Geografi' }, { id: 10, nama: 'Sosiologi' }, { id: 11, nama: 'PJOK' }, 
-            { id: 12, nama: 'Seni Budaya' },
-        ],
-        kelas: [ 
-            { id: 1, nama: 'XII.A' }, { id: 2, nama: 'XII.B' }, { id: 3, nama: 'XII.C' }, { id: 4, nama: 'XII.D' },
-            { id: 5, nama: 'XII.E' }, { id: 6, nama: 'XII.F' }, { id: 7, nama: 'XII.G' }, { id: 8, nama: 'XII.H' },
-            { id: 9, nama: 'XII.I' }, { id: 10, nama: 'XII.J' }, { id: 11, nama: 'XII.K' }, { id: 12, nama: 'XII.L' },
-        ],
-        ruang: [ 
-            { id: 1, nama: 'R-101' }, { id: 2, nama: 'R-102' }, { id: 3, nama: 'Lab-Bio' }, 
-            { id: 4, nama: 'Lab-Fisika' }, { id: 5, nama: 'Lab-Kimia' }, { id: 6, nama: 'R-201' },
-            { id: 7, nama: 'R-202' }, { id: 8, nama: 'Aula' }, { id: 9, nama: 'Lapangan' }
-        ]
-    };
-
-    let tanggapan = [
-        { id: 1, studentName: 'Ahmad', studentClass: 'XII.A', inquiryText: "Pak, apakah ada tugas tambahan untuk Biologi minggu ini?", replyText: null, repliedBy: null },
-        { id: 2, studentName: 'Rina', studentClass: 'XII.B', inquiryText: "Bu, materi Sejarah kemarin bisa di-share filenya?", replyText: null, repliedBy: null }
-    ];
+    // --- VARIABEL GLOBAL ---
+    let users = [];
+    let data = { guru: [], mapel: [], kelas: [], ruang: [] };
+    let tanggapan = [];
+    let jadwal = {};
     
     const HARI = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
     const JAM = ['07:00-08:00', '08:00-09:00', '09:00-10:00', '10:00-11:00', '11:00-12:00'];
     let currentLang = 'id';
     let currentUser = null;
-    let jadwal = {};
 
     // --- FUNGSI AUTH & UI CONTROL ---
     const loginScreen = document.getElementById('login-screen');
@@ -402,10 +381,11 @@
         loginError.textContent = '';
     }
 
-    function showApp() {
+    async function showApp() {
         loginScreen.style.display = 'none';
         appContent.style.display = 'block';
         document.getElementById('welcome-message').textContent = `${translations[currentLang].welcome}, ${currentUser.name}!`;
+        await fetchAllData();
         updateViewBasedOnRole();
     }
     
@@ -414,7 +394,11 @@
         document.getElementById('teacher-view').style.display = 'none';
         document.getElementById('student-view').style.display = 'none';
         
-        renderAll();
+        if (currentUser.role === 'admin' || currentUser.role === 'guru') {
+            renderAll();
+        } else {
+            renderJadwal();
+        }
 
         if (currentUser.role === 'admin') {
             document.getElementById('admin-view').style.display = 'block';
@@ -422,6 +406,7 @@
             document.getElementById('teacher-view').style.display = 'block';
         } else if (currentUser.role === 'siswa') {
             document.getElementById('student-view').style.display = 'block';
+            updateStudentClassOptions();
         }
     }
     
@@ -434,7 +419,7 @@
             const roleKey = {admin: 'roleAdmin', guru: 'roleTeacher', siswa: 'roleStudent'}[role];
             nameSelectionTitle.textContent = `${translations[currentLang].loginTitle} ${translations[currentLang][roleKey]}`;
             
-            passwordField.classList.remove('hidden');
+            passwordField.classList.remove('hidden'); // Selalu tampilkan kolom password
             
             roleSelectionView.style.display = 'none';
             nameSelectionView.style.display = 'block';
@@ -461,7 +446,7 @@
         }
     }
 
-    document.getElementById('btn-login').addEventListener('click', () => {
+    document.getElementById('btn-login').addEventListener('click', async () => {
         const selectedUserId = parseInt(userSelector.value);
         if (!selectedUserId) return;
 
@@ -481,7 +466,7 @@
 
         if (passwordCorrect) {
             sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
-            showApp();
+            await showApp();
             document.getElementById('password-input').value = '';
         } else {
             loginError.textContent = translations[currentLang].loginError;
@@ -517,6 +502,38 @@
 
     languageToggle.addEventListener('change', (e) => { setLanguage(e.target.checked ? 'en' : 'id'); });
 
+    // --- FUNGSI PENGAMBILAN DATA DARI SUPABASE ---
+    async function fetchAllData() {
+        try {
+            const [guruRes, mapelRes, kelasRes, ruangRes, tanggapanRes, jadwalRes, usersRes] = await Promise.all([
+                db.from('guru').select('*').order('id'),
+                db.from('mapel').select('*').order('id'),
+                db.from('kelas').select('*').order('id'),
+                db.from('ruang').select('*').order('id'),
+                db.from('tanggapan').select('*').order('id'),
+                db.from('jadwal_data').select('jadwal_json').limit(1).single(),
+                db.from('users').select('*').order('id'),
+            ]);
+
+            data.guru = guruRes.data || [];
+            data.mapel = mapelRes.data || [];
+            data.kelas = kelasRes.data || [];
+            data.ruang = ruangRes.data || [];
+            tanggapan = tanggapanRes.data || [];
+            users = usersRes.data || [];
+            if (jadwalRes.data && jadwalRes.data.jadwal_json && Object.keys(jadwalRes.data.jadwal_json).length > 0) {
+                jadwal = jadwalRes.data.jadwal_json;
+            } else {
+                // Jika jadwal di DB kosong, buat jadwal default dan simpan
+                jadwal = generateRandomSchedule();
+                await db.from('jadwal_data').update({ jadwal_json: jadwal }).eq('id', 1);
+            }
+
+        } catch (error) {
+            console.error("Error fetching data:", error);
+        }
+    }
+    
     // --- FUNGSI RENDER DATA ---
     function renderAll() {
         renderGuru(); renderMapel(); renderKelas(); renderRuang(); renderUsers(); renderTanggapan();
@@ -545,7 +562,7 @@
 
     // --- LOGIKA AKSI PENGGUNA ---
 
-    document.getElementById('teacher-view').addEventListener('click', function(e) {
+    document.getElementById('teacher-view').addEventListener('click', async function(e) {
         if (e.target.classList.contains('btn-balas')) {
             const id = e.target.dataset.id;
             const form = document.querySelector(`#tanggapan-${id} .reply-form`);
@@ -556,18 +573,16 @@
             const textarea = document.querySelector(`#tanggapan-${id} textarea`);
             const replyText = textarea.value.trim();
             if (replyText) {
-                const tanggapanItem = tanggapan.find(t => t.id === id);
-                tanggapanItem.replyText = replyText;
-                tanggapanItem.repliedBy = currentUser.name;
-                renderTanggapan();
+                const { error } = await db.from('tanggapan').update({ replyText: replyText, repliedBy: currentUser.name }).eq('id', id);
+                if (!error) await fetchAllData(); renderTanggapan();
             }
         }
     });
 
-    document.getElementById('form-guru').addEventListener('submit', function(e) { e.preventDefault(); const nameInput = document.getElementById('nama-guru'); const mapelInput = document.getElementById('mapel-guru'); if (nameInput.value.trim() && mapelInput.value) { const newId = Date.now(); users.push({ id: newId, name: nameInput.value.trim(), role: 'guru' }); data.guru.push({ id: newId, nama: nameInput.value.trim(), id_mapel: parseInt(mapelInput.value) }); renderGuru(); renderUsers(); nameInput.value = ''; mapelInput.value = ''; } });
-    document.getElementById('form-mapel').addEventListener('submit', function(e) { e.preventDefault(); const input = document.getElementById('nama-mapel'); if (input.value.trim()) { data.mapel.push({ id: Date.now(), nama: input.value.trim() }); renderMapel(); updateMapelOptions(); input.value = ''; } });
-    document.getElementById('form-kelas').addEventListener('submit', function(e) { e.preventDefault(); const input = document.getElementById('nama-kelas'); if (input.value.trim()) { data.kelas.push({ id: Date.now(), nama: input.value.trim() }); renderKelas(); updateStudentClassOptions(); input.value = ''; } });
-    document.getElementById('form-ruang').addEventListener('submit', function(e) { e.preventDefault(); const input = document.getElementById('nama-ruang'); if (input.value.trim()) { data.ruang.push({ id: Date.now(), nama: input.value.trim() }); renderRuang(); input.value = ''; } });
+    document.getElementById('form-guru').addEventListener('submit', async function(e) { e.preventDefault(); const nameInput = document.getElementById('nama-guru'); const mapelInput = document.getElementById('mapel-guru'); if (nameInput.value.trim() && mapelInput.value) { const { data: newUserData, error: userError } = await db.from('users').insert([{ name: nameInput.value.trim(), role: 'guru' }]).select().single(); if (!userError) { const { error: guruError } = await db.from('guru').insert([{ id: newUserData.id, nama: newUserData.name, id_mapel: parseInt(mapelInput.value) }]); if (!guruError) { await fetchAllData(); renderGuru(); renderUsers(); nameInput.value = ''; mapelInput.value = ''; } } } });
+    document.getElementById('form-mapel').addEventListener('submit', async function(e) { e.preventDefault(); const input = document.getElementById('nama-mapel'); if (input.value.trim()) { const { error } = await db.from('mapel').insert({ nama: input.value.trim() }); if (!error) { await fetchAllData(); renderMapel(); updateMapelOptions(); input.value = ''; } } });
+    document.getElementById('form-kelas').addEventListener('submit', async function(e) { e.preventDefault(); const input = document.getElementById('nama-kelas'); if (input.value.trim()) { const { error } = await db.from('kelas').insert({ nama: input.value.trim() }); if (!error) { await fetchAllData(); renderKelas(); updateStudentClassOptions(); input.value = ''; } } });
+    document.getElementById('form-ruang').addEventListener('submit', async function(e) { e.preventDefault(); const input = document.getElementById('nama-ruang'); if (input.value.trim()) { const { error } = await db.from('ruang').insert({ nama: input.value.trim() }); if (!error) { await fetchAllData(); renderRuang(); input.value = ''; } } });
     
     // --- LOGIKA DELETE ---
     const deleteModal = document.getElementById('delete-modal');
@@ -580,44 +595,32 @@
 
     document.getElementById('admin-view').addEventListener('click', function(e) { if (e.target.classList.contains('btn-delete')) { itemToDelete = { id: parseInt(e.target.dataset.id), type: e.target.dataset.type }; showDeleteModal(); } });
     btnCancelDelete.addEventListener('click', hideDeleteModal);
-    btnConfirmDelete.addEventListener('click', function() { if (itemToDelete) { const { id, type } = itemToDelete; if (type === 'guru') { users = users.filter(u => u.id !== id); } data[type] = data[type].filter(item => item.id !== id); renderAll(); hideDeleteModal(); } });
+    btnConfirmDelete.addEventListener('click', async function() { if (itemToDelete) { const { id, type } = itemToDelete; let error; if (type === 'guru') { await db.from('users').delete().eq('id', id); ({ error } = await db.from('guru').delete().eq('id', id)); } else { ({ error } = await db.from(type).delete().eq('id', id)); } if (!error) await fetchAllData(); renderAll(); hideDeleteModal(); } });
 
     // --- LOGIKA JADWAL ---
-    document.getElementById('btn-generate').addEventListener('click', function() { const statusDiv = document.getElementById('generation-status'); statusDiv.textContent = translations[currentLang].generatingStatus; statusDiv.classList.add('text-blue-600'); setTimeout(() => { jadwal = generateRandomSchedule(); renderJadwal(); statusDiv.textContent = translations[currentLang].generatedStatus; statusDiv.classList.remove('text-blue-600'); statusDiv.classList.add('text-green-600'); }, 50); });
+    document.getElementById('btn-generate').addEventListener('click', async function() { const statusDiv = document.getElementById('generation-status'); statusDiv.textContent = translations[currentLang].generatingStatus; statusDiv.classList.add('text-blue-600'); await new Promise(res => setTimeout(res, 50)); jadwal = generateRandomSchedule(); const { error } = await db.from('jadwal_data').update({ jadwal_json: jadwal }).eq('id', 1); if (!error) { renderJadwal(); statusDiv.textContent = translations[currentLang].generatedStatus; statusDiv.classList.remove('text-blue-600'); statusDiv.classList.add('text-green-600'); } });
     
     function generateRandomSchedule() {
         let newJadwal = {};
         data.kelas.forEach(k => {
             newJadwal[k.id] = {};
+            const isIPA = k.id <= 6; 
+            const mapelPeminatan = isIPA ? data.mapel.filter(m => ['Matematika', 'Fisika', 'Kimia', 'Biologi'].includes(m.nama)) : data.mapel.filter(m => ['Ekonomi', 'Geografi', 'Sosiologi', 'Sejarah'].includes(m.nama));
+            const poolMapel = [...mapelPeminatan, ...data.mapel.filter(m => ['Bahasa Indonesia', 'Bahasa Inggris', 'PJOK', 'Seni Budaya'].includes(m.nama))];
+            
             HARI.forEach(h => {
                 newJadwal[k.id][h] = {};
-                JAM.forEach(j => { newJadwal[k.id][h][j] = null; });
-            });
-        });
-        HARI.forEach(hari => {
-            JAM.forEach(jam => {
-                let guruSudahMengajar = new Set();
-                let ruangSudahDipakai = new Set();
-                data.kelas.forEach(k => {
-                    const mapelAcak = [...data.mapel].sort(() => Math.random() - 0.5);
-                    for (const mapel of mapelAcak) {
-                        const guruTersedia = data.guru.filter(g => g.id_mapel === mapel.id && !guruSudahMengajar.has(g.id));
-                        if (guruTersedia.length > 0) {
-                            const ruangTersedia = data.ruang.filter(r => !ruangSudahDipakai.has(r.id));
-                            if (ruangTersedia.length > 0) {
-                                const guruDipilih = guruTersedia[0];
-                                const ruangDipilih = ruangTersedia[0];
-                                newJadwal[k.id][hari][jam] = { mapel: mapel.nama, guru: guruDipilih.nama, ruang: ruangDipilih.nama };
-                                guruSudahMengajar.add(guruDipilih.id);
-                                ruangSudahDipakai.add(ruangDipilih.id);
-                                break;
-                            }
-                        }
+                let mapelHariIni = [...poolMapel].sort(() => 0.5 - Math.random());
+                JAM.forEach(j => {
+                    if(mapelHariIni.length > 0){
+                        const mapelDipilih = mapelHariIni.pop();
+                        const guru = data.guru.find(g => g.id_mapel === mapelDipilih.id);
+                        const ruang = data.ruang[Math.floor(Math.random() * data.ruang.length)];
+                        if(guru && ruang) newJadwal[k.id][h][j] = { mapel: mapelDipilih.nama, guru: guru.nama, ruang: ruang.nama };
                     }
                 });
             });
         });
-        sessionStorage.setItem('jadwal', JSON.stringify(newJadwal));
         return newJadwal;
     }
 
@@ -625,7 +628,7 @@
     function renderJadwal(filter = {}) {
         const container = document.getElementById('hasil-jadwal');
         container.innerHTML = '';
-        if (Object.keys(jadwal).length === 0) { container.innerHTML = `<p class="text-center text-gray-500">${currentUser.role === 'admin' ? translations[currentLang].noSchedule : translations[currentLang].noScheduleForYou}</p>`; return; }
+        if (Object.keys(jadwal).length === 0 || !jadwal) { container.innerHTML = `<p class="text-center text-gray-500">${translations[currentLang].noScheduleForYou}</p>`; return; }
         
         let kelasToRender = [];
         if (currentUser.role === 'admin' || currentUser.role === 'guru') {
@@ -648,27 +651,37 @@
     const studentClassSelector = document.getElementById('student-class-selector');
     const btnLihatJadwal = document.getElementById('btn-lihat-jadwal');
     studentClassSelector.addEventListener('change', () => { btnLihatJadwal.disabled = !studentClassSelector.value; document.getElementById('student-subject-summary').innerHTML = ''; document.getElementById('hasil-jadwal').innerHTML = ''; });
-    btnLihatJadwal.addEventListener('click', () => { const classId = parseInt(studentClassSelector.value); const summaryContainer = document.getElementById('student-subject-summary'); if (classId && Object.keys(jadwal).length > 0) { const jadwalKelas = jadwal[classId]; const subjects = new Set(); if (jadwalKelas) { HARI.forEach(h => { JAM.forEach(j => { if (jadwalKelas[h]?.[j]?.mapel) subjects.add(jadwalKelas[h][j].mapel); }); }); } if (subjects.size > 0) { summaryContainer.innerHTML = `<div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md"><h3 class="text-lg font-semibold mb-3" data-lang="subjectsInThisClass">${translations[currentLang].subjectsInThisClass}</h3><div class="flex flex-wrap gap-2">${Array.from(subjects).sort().map(s => `<span class="bg-sky-100 text-sky-800 text-sm font-medium px-3 py-1 rounded-full dark:bg-sky-900 dark:text-sky-300">${s}</span>`).join('')}</div></div>`; } else { summaryContainer.innerHTML = ''; } renderJadwal({ role: 'siswa', classId: classId }); } else { document.getElementById('hasil-jadwal').innerHTML = `<p class="text-center text-gray-500">${translations[currentLang].noScheduleForYou}</p>`; summaryContainer.innerHTML = ''; } });
+    btnLihatJadwal.addEventListener('click', () => { const classId = parseInt(studentClassSelector.value); const summaryContainer = document.getElementById('student-subject-summary'); if (classId && jadwal) { const jadwalKelas = jadwal[classId]; const subjects = new Set(); if (jadwalKelas) { HARI.forEach(h => { JAM.forEach(j => { if (jadwalKelas[h]?.[j]?.mapel) subjects.add(jadwalKelas[h][j].mapel); }); }); } if (subjects.size > 0) { summaryContainer.innerHTML = `<div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md"><h3 class="text-lg font-semibold mb-3" data-lang="subjectsInThisClass">${translations[currentLang].subjectsInThisClass}</h3><div class="flex flex-wrap gap-2">${Array.from(subjects).sort().map(s => `<span class="bg-sky-100 text-sky-800 text-sm font-medium px-3 py-1 rounded-full dark:bg-sky-900 dark:text-sky-300">${s}</span>`).join('')}</div></div>`; } else { summaryContainer.innerHTML = ''; } renderJadwal({ role: 'siswa', classId: classId }); } else { document.getElementById('hasil-jadwal').innerHTML = `<p class="text-center text-gray-500">${translations[currentLang].noScheduleForYou}</p>`; summaryContainer.innerHTML = ''; } });
 
     // --- FUNGSI CETAK ---
     document.getElementById('btn-cetak').addEventListener('click', () => window.print());
 
     // --- INISIALISASI ---
-    document.addEventListener('DOMContentLoaded', () => {
-        const savedUser = sessionStorage.getItem('currentUser');
-        const savedJadwal = sessionStorage.getItem('jadwal');
-        if(savedJadwal) {
-            jadwal = JSON.parse(savedJadwal);
-        } else {
-            // Jika tidak ada jadwal di session, buat jadwal acak pertama kali
-            jadwal = generateRandomSchedule();
-        }
+    document.addEventListener('DOMContentLoaded', async () => {
+        const supabaseWarning = document.getElementById('supabase-warning');
+        const roleSelection = document.getElementById('role-selection-view');
 
+        // Cek apakah kunci Supabase sudah diisi
+        if (SUPABASE_URL.includes('gantidenganurlproyekanda') || SUPABASE_ANON_KEY.includes('GANTI_DENGAN_KUNCI_ANON_ANDA')) {
+            supabaseWarning.classList.remove('hidden');
+            roleSelection.classList.add('hidden'); // Sembunyikan pilihan peran jika koneksi gagal
+            return; // Hentikan eksekusi lebih lanjut
+        }
+        
+        const savedUser = sessionStorage.getItem('currentUser');
         if (savedUser) {
             currentUser = JSON.parse(savedUser);
-            showApp();
+            await showApp();
         } else {
-            showLogin();
+            const { data: usersData, error } = await db.from('users').select('*').order('id');
+            if (error) {
+                console.error("Error fetching users:", error);
+                supabaseWarning.classList.remove('hidden');
+                roleSelection.classList.add('hidden');
+            } else {
+                users = usersData || [];
+                showLogin();
+            }
         }
         
         const themeToggle = document.getElementById('theme-toggle');
